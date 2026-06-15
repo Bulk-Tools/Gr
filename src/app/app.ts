@@ -64,6 +64,63 @@ import { CommonModule } from '@angular/common';
         </div>
       </section>
 
+      <!-- Logic Sequences -->
+      <section class="space-y-4">
+        <h2 class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4">Core Sequence Filter</h2>
+        <div class="grid grid-cols-3 gap-2">
+            <button (click)="setSequence('primes')" [class.bg-zinc-800]="sequenceType() === 'primes'" [class.border-emerald-500]="sequenceType() === 'primes'" class="py-2 border border-zinc-700/50 rounded text-[10px] font-bold text-zinc-300 transition-colors">PRIMES</button>
+            <button (click)="setSequence('twins')" [class.bg-zinc-800]="sequenceType() === 'twins'" [class.border-emerald-500]="sequenceType() === 'twins'" class="py-2 border border-zinc-700/50 rounded text-[10px] font-bold text-zinc-300 transition-colors">TWINS</button>
+            <button (click)="setSequence('integers')" [class.bg-zinc-800]="sequenceType() === 'integers'" [class.border-emerald-500]="sequenceType() === 'integers'" class="py-2 border border-zinc-700/50 rounded text-[10px] font-bold text-zinc-300 transition-colors">INTEGERS</button>
+        </div>
+      </section>
+
+      <!-- Advanced Physics -->
+      <section class="space-y-4">
+        <h2 class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4">Physics & Harmonics</h2>
+        <div class="space-y-1">
+            <div class="flex justify-between mb-2">
+                <div class="text-[11px] text-zinc-400">Gravitational Attractor</div>
+                <span class="font-mono text-[11px] text-emerald-500">{{ gravityForce() }}</span>
+            </div>
+            <input type="range" [value]="gravityForce()" (input)="updateGravity($event)" (change)="clearEngine()" min="0" max="100" step="1" class="w-full accent-emerald-500 cursor-pointer" />
+        </div>
+        <div class="space-y-1">
+            <div class="flex justify-between mb-2">
+                <div class="text-[11px] text-zinc-400">Wave Modulator (Amplitude)</div>
+                <span class="font-mono text-[11px] text-emerald-500">{{ waveAmplitude() }}</span>
+            </div>
+            <input type="range" [value]="waveAmplitude()" (input)="updateWave($event)" (change)="clearEngine()" min="0" max="100" step="1" class="w-full accent-emerald-500 cursor-pointer" />
+        </div>
+      </section>
+
+      <!-- Matrix Multiplication -->
+      <section class="space-y-4">
+        <h2 class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4">Matrix Multiplexing</h2>
+        <div>
+            <div class="text-[11px] text-zinc-400 mb-2">Parallel Traces</div>
+            <div class="grid grid-cols-3 gap-2">
+               @for (tc of [1, 2, 4]; track tc) {
+                 <button (click)="setTraces(tc)" [class.bg-zinc-800]="mathTraces() === tc" [class.border-emerald-500]="mathTraces() === tc" class="py-1.5 border border-zinc-700/50 rounded text-[10px] font-bold text-zinc-300 transition-colors">{{ tc }}X</button>
+               }
+            </div>
+            @if (mathTraces() > 1) {
+              <div class="grid grid-cols-3 gap-2 mt-2">
+                 <button (click)="setTraceMode('mirror')" [class.bg-zinc-800]="traceMode() === 'mirror'" [class.border-emerald-500]="traceMode() === 'mirror'" class="py-1.5 border border-zinc-700/50 rounded text-[9px] text-zinc-400 transition-colors">MIRROR</button>
+                 <button (click)="setTraceMode('offset')" [class.bg-zinc-800]="traceMode() === 'offset'" [class.border-emerald-500]="traceMode() === 'offset'" class="py-1.5 border border-zinc-700/50 rounded text-[9px] text-zinc-400 transition-colors">OFFSET</button>
+                 <button (click)="setTraceMode('harmonic')" [class.bg-zinc-800]="traceMode() === 'harmonic'" [class.border-emerald-500]="traceMode() === 'harmonic'" class="py-1.5 border border-zinc-700/50 rounded text-[9px] text-zinc-400 transition-colors">HARMONIC</button>
+              </div>
+            }
+        </div>
+        <div>
+            <div class="text-[11px] text-zinc-400 mb-2">Radial Symmetry (Clones)</div>
+            <div class="grid grid-cols-4 gap-2">
+               @for (sym of [1, 4, 8, 12]; track sym) {
+                 <button (click)="setSymmetry(sym)" [class.bg-zinc-800]="radialSymmetry() === sym" [class.border-emerald-500]="radialSymmetry() === sym" class="py-1.5 border border-zinc-700/50 rounded text-[10px] font-bold text-zinc-300 transition-colors">{{ sym }}</button>
+               }
+            </div>
+        </div>
+      </section>
+
       <!-- Math Parameters -->
       <section class="space-y-4">
         <h2 class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-4">Vector Precision Controls</h2>
@@ -272,6 +329,8 @@ export class App implements AfterViewInit, OnDestroy {
   uScale!: WebGLUniformLocation;
   uColor!: WebGLUniformLocation;
   uUseGradient!: WebGLUniformLocation;
+  uRotation!: WebGLUniformLocation;
+  uTraceIndex!: WebGLUniformLocation;
 
   modulo = signal(360);
   angleStep = signal(1);
@@ -280,6 +339,13 @@ export class App implements AfterViewInit, OnDestroy {
   lineLength = signal(2);
   colorMode = signal<'gradient' | 'solid'>('solid');
   solidColor = signal('#10b981');
+
+  sequenceType = signal<'primes' | 'twins' | 'integers'>('primes');
+  mathTraces = signal(1);
+  traceMode = signal<'mirror' | 'offset' | 'harmonic'>('mirror');
+  radialSymmetry = signal(1);
+  gravityForce = signal(0);
+  waveAmplitude = signal(0);
 
   isRunning = signal(true);
   currentNumber = signal(2);
@@ -305,14 +371,12 @@ export class App implements AfterViewInit, OnDestroy {
   translateY = 0;
   scale = 1;
 
-  maxPoints = 5_000_000;
-  positions = new Float32Array(this.maxPoints * 2);
+  maxPointsPerTrace = 1250000;
+  positions = new Float32Array(this.maxPointsPerTrace * 4 * 2);
   positionBuffer!: WebGLBuffer;
   lastUpdateCount = 0;
   
-  currentX = 0;
-  currentY = 0;
-  currentAngleDegrees = 0;
+  traces: { x: number, y: number, angle: number, startOffset: number }[] = [];
 
   animationFrameId = 0;
   needsRender = true;
@@ -321,6 +385,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this.initWebGL();
+    this.clearEngine();
     const ro = new ResizeObserver(() => this.resizeCanvas());
     ro.observe(this.canvasRef.nativeElement);
     this.animationFrameId = requestAnimationFrame(() => this.processBatch());
@@ -335,9 +400,15 @@ export class App implements AfterViewInit, OnDestroy {
   updateLineLength(e: Event) { this.lineLength.set(Number((e.target as HTMLInputElement).value)); }
   updateSpeed(e: Event) { this.speed.set(Number((e.target as HTMLInputElement).value)); }
   updateColor(e: Event) { this.solidColor.set((e.target as HTMLInputElement).value); this.needsRender = true; }
+  updateGravity(e: Event) { this.gravityForce.set(Number((e.target as HTMLInputElement).value)); }
+  updateWave(e: Event) { this.waveAmplitude.set(Number((e.target as HTMLInputElement).value)); }
 
   setModulo(m: number) { this.modulo.set(m); this.clearEngine(); }
   setColorMode(m: 'gradient' | 'solid') { this.colorMode.set(m); this.needsRender = true; }
+  setSequence(s: 'primes' | 'twins' | 'integers') { this.sequenceType.set(s); this.clearEngine(); }
+  setTraces(t: number) { this.mathTraces.set(t); this.clearEngine(); }
+  setTraceMode(m: 'mirror' | 'offset' | 'harmonic') { this.traceMode.set(m); this.clearEngine(); }
+  setSymmetry(s: number) { this.radialSymmetry.set(s); this.needsRender = true; }
   
   setExportRatio(r: '16:9' | '1:1' | '4:3' | '9:16') { this.exportRatio.set(r); }
   setExportResolution(r: '2K' | '4K' | '8K' | '16K') { this.exportResolution.set(r); }
@@ -352,9 +423,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.sumAnglesSq = 0;
     this.angleVariance.set(0);
     this.lastUpdateCount = 0;
-    this.currentX = 0;
-    this.currentY = 0;
-    this.currentAngleDegrees = 0;
+    
+    this.traces = [];
+    const numTraces = this.mathTraces();
+    for (let i = 0; i < numTraces; i++) {
+        this.traces.push({ x: 0, y: 0, angle: 0, startOffset: i * this.maxPointsPerTrace * 2 });
+    }
+
     this.needsRender = true;
   }
 
@@ -400,18 +475,20 @@ export class App implements AfterViewInit, OnDestroy {
 
   getBounds() {
     const count = this.primesFound();
-    if (count === 0) return null;
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    if (count === 0 || this.traces.length === 0) return null;
+    let maxR = 0;
     const pts = this.positions;
-    for(let i=0; i<count; i++) {
-       const x = pts[i*2];
-       const y = pts[i*2+1];
-       if (x < minX) minX = x;
-       if (x > maxX) maxX = x;
-       if (y > maxY) maxY = y;
-       if (y < minY) minY = y;
+    for (const trace of this.traces) {
+        const offset = trace.startOffset;
+        for(let i=0; i<count; i++) {
+           const x = pts[offset + i*2];
+           const y = pts[offset + i*2+1];
+           const rSq = x*x + y*y;
+           if (rSq > maxR) maxR = rSq;
+        }
     }
-    return { minX, maxX, minY, maxY };
+    const R = Math.sqrt(maxR);
+    return { minX: -R, maxX: R, minY: -R, maxY: R };
   }
 
   async performExport() {
@@ -480,30 +557,42 @@ export class App implements AfterViewInit, OnDestroy {
       ctx.translate(tx, ty);
       ctx.scale(sc, sc);
 
-      if (this.colorMode() === 'solid') {
-        ctx.beginPath();
-        ctx.strokeStyle = this.solidColor();
-        ctx.lineWidth = 1 / sc; 
-        
-        if(count > 0) ctx.moveTo(pts[0], pts[1]);
-        for(let i = 1; i < count; i++) {
-            ctx.lineTo(pts[i*2], pts[i*2+1]);
-        }
-        ctx.stroke();
-      } else {
-         const batchSize = 1000;
-         ctx.lineWidth = 1 / sc;
-         for (let b = 0; b < count; b += batchSize) {
-            ctx.beginPath();
-            const end = Math.min(b + batchSize, count);
-            ctx.moveTo(pts[b*2], pts[b*2+1]);
-            for(let i = b + 1; i < end; i++) {
-                ctx.lineTo(pts[i*2], pts[i*2+1]);
-            }
-            const hue = (b / 120000.0) % 1.0;
-            ctx.strokeStyle = `hsl(${Math.round(hue * 360)}, 85%, 50%)`;
-            ctx.stroke();
+      for (let s = 0; s < this.radialSymmetry(); s++) {
+         ctx.save();
+         const rotRad = (Math.PI * 2 / this.radialSymmetry()) * s;
+         ctx.rotate(rotRad);
+
+         for (let t = 0; t < this.traces.length; t++) {
+             const traceOffset = this.traces[t].startOffset;
+             const hueOffset = t * 0.15;
+            
+             if (this.colorMode() === 'solid') {
+                ctx.beginPath();
+                ctx.strokeStyle = this.solidColor();
+                ctx.lineWidth = Math.max(0.1, 1 / sc); 
+                
+                if(count > 0) ctx.moveTo(pts[traceOffset], pts[traceOffset+1]);
+                for(let i = 1; i < count; i++) {
+                    ctx.lineTo(pts[traceOffset + i*2], pts[traceOffset + i*2+1]);
+                }
+                ctx.stroke();
+             } else {
+                 const batchSize = 1000;
+                 ctx.lineWidth = Math.max(0.1, 1 / sc);
+                 for (let b = 0; b < count; b += batchSize) {
+                    ctx.beginPath();
+                    const end = Math.min(b + batchSize, count);
+                    ctx.moveTo(pts[traceOffset + b*2], pts[traceOffset + b*2+1]);
+                    for(let i = b + 1; i < end; i++) {
+                        ctx.lineTo(pts[traceOffset + i*2], pts[traceOffset + i*2+1]);
+                    }
+                    const hue = ((b / 120000.0) + hueOffset) % 1.0;
+                    ctx.strokeStyle = `hsl(${Math.round(hue * 360)}, 85%, 50%)`;
+                    ctx.stroke();
+                 }
+             }
          }
+         ctx.restore();
       }
 
       return new Promise<void>((resolve, reject) => {
@@ -527,31 +616,42 @@ export class App implements AfterViewInit, OnDestroy {
       
       const fix = (n: number) => Number(n.toFixed(3));
 
-      if (isSolid) {
-        let d = '';
-        if(count > 0) d += `M${fix(pts[0])},${fix(pts[1])}`;
-        const chunkLimit = 50000;
-        for(let i = 1; i < count; i++) {
-            d += ` L${fix(pts[i*2])},${fix(pts[i*2+1])}`;
-            if (i % chunkLimit === 0) {
-               svgContent += `<path d="${d}" fill="none" stroke="${this.solidColor()}" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
-               d = `M${fix(pts[i*2])},${fix(pts[i*2+1])}`;
-            }
-        }
-        if (d.length > 0) {
-            svgContent += `<path d="${d}" fill="none" stroke="${this.solidColor()}" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
-        }
-      } else {
-         const batchSize = 1000;
-         for (let b = 0; b < count; b += batchSize) {
-            const end = Math.min(b + batchSize, count);
-            let d = `M${fix(pts[b*2])},${fix(pts[b*2+1])}`;
-            for(let i = b + 1; i < end; i++) {
-                d += ` L${fix(pts[i*2])},${fix(pts[i*2+1])}`;
-            }
-            const hue = (b / 120000.0) % 1.0;
-            svgContent += `<path d="${d}" fill="none" stroke="hsl(${Math.round(hue * 360)}, 85%, 50%)" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
+      for (let s = 0; s < this.radialSymmetry(); s++) {
+         const rotDeg = (360 / this.radialSymmetry()) * s;
+         svgContent += `<g transform="rotate(${rotDeg})">\n`;
+
+         for (let t = 0; t < this.traces.length; t++) {
+             const traceOffset = this.traces[t].startOffset;
+             const hueOffset = t * 0.15;
+            
+             if (isSolid) {
+                let d = '';
+                if(count > 0) d += `M${fix(pts[traceOffset])},${fix(pts[traceOffset+1])}`;
+                const chunkLimit = 50000;
+                for(let i = 1; i < count; i++) {
+                    d += ` L${fix(pts[traceOffset + i*2])},${fix(pts[traceOffset + i*2+1])}`;
+                    if (i % chunkLimit === 0) {
+                       svgContent += `<path d="${d}" fill="none" stroke="${this.solidColor()}" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
+                       d = `M${fix(pts[traceOffset + i*2])},${fix(pts[traceOffset + i*2+1])}`;
+                    }
+                }
+                if (d.length > 0) {
+                    svgContent += `<path d="${d}" fill="none" stroke="${this.solidColor()}" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
+                }
+             } else {
+                 const batchSize = 1000;
+                 for (let b = 0; b < count; b += batchSize) {
+                    const end = Math.min(b + batchSize, count);
+                    let d = `M${fix(pts[traceOffset + b*2])},${fix(pts[traceOffset + b*2+1])}`;
+                    for(let i = b + 1; i < end; i++) {
+                        d += ` L${fix(pts[traceOffset + i*2])},${fix(pts[traceOffset + i*2+1])}`;
+                    }
+                    const hue = ((b / 120000.0) + hueOffset) % 1.0;
+                    svgContent += `<path d="${d}" fill="none" stroke="hsl(${Math.round(hue * 360)}, 85%, 50%)" stroke-width="${1/sc}" stroke-linejoin="round" />\n`;
+                 }
+             }
          }
+         svgContent += `</g>\n`;
       }
 
       svgContent += `</g>\n</svg>`;
@@ -567,42 +667,68 @@ export class App implements AfterViewInit, OnDestroy {
   processBatch() {
     let currentCount = this.primesFound();
 
-    if (this.isRunning() && currentCount < this.maxPoints) {
+    if (this.isRunning() && currentCount < this.maxPointsPerTrace) {
       const t0 = performance.now();
       let num = this.currentNumber();
       const m = this.modulo();
       const aStep = this.angleStep();
       const cum = this.cumulative();
       const lLen = this.lineLength();
+      const seq = this.sequenceType();
+      const wAmp = this.waveAmplitude();
+      const grav = this.gravityForce() * 0.0001;
+      const tMode = this.traceMode();
       
       let workCount = 0;
       const targetWork = this.speed();
-      let index = currentCount * 2;
-      let sAngle = this.sumAngles;
-      let sAngleSq = this.sumAnglesSq;
+      let sAngleAddTotal = 0;
+      let countAdded = 0;
       
       // Limit processing to 12ms per frame to maintain 60fps visually
-      while (performance.now() - t0 < 12 && workCount < targetWork && currentCount < this.maxPoints) {
-        if (this.isPrime(num)) {
+      while (performance.now() - t0 < 12 && workCount < targetWork && currentCount < this.maxPointsPerTrace) {
+        let isHit = false;
+        if (seq === 'primes') isHit = this.isPrime(num);
+        else if (seq === 'integers') isHit = true;
+        else if (seq === 'twins') isHit = this.isPrime(num) && this.isPrime(num + 2);
+        
+        if (isHit) {
           const mod = num % m;
-          const turn = mod * aStep;
+          const turnBase = mod * aStep;
           
-          if (cum) {
-             this.currentAngleDegrees += turn;
-          } else {
-             this.currentAngleDegrees = turn;
+          let wave = 0;
+          if (wAmp > 0) wave = Math.sin(num / 100.0) * wAmp;
+
+          for (let i = 0; i < this.traces.length; i++) {
+              const trace = this.traces[i];
+              let tTurn = turnBase;
+
+              if (tMode === 'mirror' && (i % 2 === 1)) tTurn = -tTurn;
+              if (tMode === 'offset' && i > 0) tTurn += (90 * i);
+              if (tMode === 'harmonic' && i > 0) tTurn += Math.cos(num / 150.0) * (30 * i);
+
+              tTurn += wave;
+
+              if (cum) trace.angle += tTurn; else trace.angle = tTurn;
+              if (i === 0) sAngleAddTotal += tTurn;
+
+              const radians = trace.angle * (Math.PI / 180.0);
+              let dx = Math.cos(radians) * lLen;
+              let dy = Math.sin(radians) * lLen;
+
+              if (grav > 0) {
+                 dx -= trace.x * grav;
+                 dy -= trace.y * grav;
+              }
+
+              trace.x += dx;
+              trace.y += dy;
+
+              const idx = trace.startOffset + currentCount * 2;
+              this.positions[idx] = trace.x;
+              this.positions[idx + 1] = trace.y;
           }
 
-          sAngle += turn;
-          sAngleSq += turn * turn;
-
-          const radians = this.currentAngleDegrees * (Math.PI / 180.0);
-          this.currentX += Math.cos(radians) * lLen;
-          this.currentY += Math.sin(radians) * lLen;
-
-          this.positions[index++] = this.currentX;
-          this.positions[index++] = this.currentY;
-
+          countAdded++;
           currentCount++;
           workCount++;
         }
@@ -611,11 +737,11 @@ export class App implements AfterViewInit, OnDestroy {
       
       this.currentNumber.set(num);
       
-      if (currentCount > this.primesFound()) {
-        this.sumAngles = sAngle;
-        this.sumAnglesSq = sAngleSq;
-        const mean = sAngle / currentCount;
-        const variance = Math.max(0, (sAngleSq / currentCount) - (mean * mean));
+      if (countAdded > 0) {
+        this.sumAngles += sAngleAddTotal;
+        this.sumAnglesSq += sAngleAddTotal * sAngleAddTotal; // Approximation
+        const mean = this.sumAngles / currentCount;
+        const variance = Math.max(0, (this.sumAnglesSq / currentCount) - (mean * mean));
         this.angleVariance.set(variance);
 
         this.primesFound.set(currentCount);
@@ -633,13 +759,20 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   updateGLBuffer() {
-    if (!this.gl) return;
+    if (!this.gl || this.traces.length === 0) return;
     const gl = this.gl;
-    const offsetBytes = this.lastUpdateCount * 2 * 4; // float32 = 4 bytes, 2 coords per point
-    const subArray = this.positions.subarray(this.lastUpdateCount * 2, this.primesFound() * 2);
-    
+    const countToUpdate = this.primesFound() - this.lastUpdateCount;
+    if (countToUpdate <= 0) return;
+
     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-    gl.bufferSubData(gl.ARRAY_BUFFER, offsetBytes, subArray);
+    
+    for (const trace of this.traces) {
+        const floatIndexOffset = trace.startOffset + this.lastUpdateCount * 2;
+        const offsetBytes = floatIndexOffset * 4;
+        const subArray = this.positions.subarray(trace.startOffset + this.lastUpdateCount * 2, trace.startOffset + this.primesFound() * 2);
+        gl.bufferSubData(gl.ARRAY_BUFFER, offsetBytes, subArray);
+    }
+    
     this.lastUpdateCount = this.primesFound();
   }
 
@@ -659,6 +792,8 @@ export class App implements AfterViewInit, OnDestroy {
     uniform float u_scale;
     uniform vec4 u_color;
     uniform bool u_useGradient;
+    uniform float u_rotation;
+    uniform int u_traceIndex;
     out vec4 v_color;
 
     vec3 hsv2rgb(vec3 c) {
@@ -669,13 +804,17 @@ export class App implements AfterViewInit, OnDestroy {
 
     void main() {
         float idx = float(gl_VertexID);
-        vec2 pos = (a_position * u_scale) + u_translation;
+        float c = cos(u_rotation);
+        float s = sin(u_rotation);
+        mat2 rot = mat2(c, -s, s, c);
+        
+        vec2 pos = (rot * a_position * u_scale) + u_translation;
         vec2 clipSpace = pos / (u_resolution / 2.0);
         clipSpace.y = -clipSpace.y;
         gl_Position = vec4(clipSpace, 0.0, 1.0);
         
         if (u_useGradient) {
-            float hue = idx / 120000.0;
+            float hue = (idx / 120000.0) + (float(u_traceIndex) * 0.15);
             v_color = vec4(hsv2rgb(vec3(fract(hue), 0.85, 1.0)), 1.0);
         } else {
             v_color = u_color;
@@ -705,6 +844,8 @@ export class App implements AfterViewInit, OnDestroy {
     this.uScale = gl.getUniformLocation(this.program, 'u_scale')!;
     this.uColor = gl.getUniformLocation(this.program, 'u_color')!;
     this.uUseGradient = gl.getUniformLocation(this.program, 'u_useGradient')!;
+    this.uRotation = gl.getUniformLocation(this.program, 'u_rotation')!;
+    this.uTraceIndex = gl.getUniformLocation(this.program, 'u_traceIndex')!;
 
     this.positionBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -777,7 +918,17 @@ export class App implements AfterViewInit, OnDestroy {
     const color = this.hexToRgba(this.solidColor());
     gl.uniform4f(this.uColor, color[0], color[1], color[2], color[3]);
 
-    gl.drawArrays(gl.LINE_STRIP, 0, this.primesFound());
+    const sym = this.radialSymmetry();
+    for (let s = 0; s < sym; s++) {
+        const symAngle = (Math.PI * 2 / sym) * s;
+        gl.uniform1f(this.uRotation, symAngle);
+
+        for (let t = 0; t < this.traces.length; t++) {
+            const trace = this.traces[t];
+            gl.uniform1i(this.uTraceIndex, t);
+            gl.drawArrays(gl.LINE_STRIP, trace.startOffset / 2, this.primesFound());
+        }
+    }
   }
 
   // --- Pointer Gestures for seamless Zoom & Pan ---
